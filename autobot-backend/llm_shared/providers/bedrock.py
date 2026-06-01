@@ -533,7 +533,7 @@ class BedrockProvider(BaseProvider):
     async def is_available(self) -> bool:
         """Return True if Bedrock credentials are configured and the service is reachable."""
         try:
-            self._ensure_runtime_client()  # Verify runtime client can be created
+            self._ensure_runtime_client()
             # Simple health check - list foundation models (no cost)
             import boto3
 
