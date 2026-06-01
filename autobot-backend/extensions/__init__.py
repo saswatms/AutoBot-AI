@@ -14,19 +14,17 @@ New code should import from middleware instead:
     from middleware import Extension, HookPoint, get_extension_manager
 """
 
-# Re-export everything from middleware for backwards compat
-from middleware import (
+# Re-export everything for backwards compat
+# Note: middleware refactoring incomplete - imports still from extensions
+from extensions.base import Extension, HookContext
+from extensions.manager import ExtensionManager, get_extension_manager, reset_extension_manager
+from extensions.hooks import (
     HOOK_METADATA,
-    Extension,
-    ExtensionManager,
-    HookContext,
     HookInvocationConfig,
     HookInvoker,
     HookPoint,
     InvocationMode,
-    get_extension_manager,
     get_hook_metadata,
-    reset_extension_manager,
 )
 
 __all__ = [
