@@ -172,3 +172,59 @@ class Database:
     async def delete_recording(self, recording_id: int) -> None:
         await self._conn.execute("DELETE FROM recordings WHERE id=?", (recording_id,))
         await self._conn.commit()
+
+    # ── Speakers ──────────────────────────────────────────────────────────────
+
+    async def create_speaker(
+        self, recording_id: int, label: str, display_name: str, language: str | None
+    ) -> int:
+        cur = await self._conn.execute(
+            "INSERT INTO speakers (recording_id, label, display_name, language) VALUES (?,?,?,?)",
+            (recording_id, label, display_name, language),
+        )
+        await self._conn.commit()
+        return cur.lastrowid
+
+    async def list_speakers(self, recording_id: int) -> list[dict]:
+        cur = await self._conn.execute(
+            "SELECT * FROM speakers WHERE recording_id=? ORDER BY id", (recording_id,)
+        )
+        return [dict(r) for r in await cur.fetchall()]
+
+    async def update_speaker(self, speaker_id: int, display_name: str) -> None:
+        await self._conn.execute(
+            "UPDATE speakers SET display_name=? WHERE id=?", (display_name, speaker_id)
+        )
+        await self._conn.commit()
+
+    # ── Segments ──────────────────────────────────────────────────────────────
+
+    async def create_segment(
+        self,
+        recording_id: int,
+        speaker_id: int | None,
+        start_time: float,
+        end_time: float,
+        text: str,
+        is_overlap: bool = False,
+    ) -> int:
+        cur = await self._conn.execute(
+            """INSERT INTO segments
+               (recording_id, speaker_id, start_time, end_time, text, original_text, is_overlap)
+               VALUES (?,?,?,?,?,?,?)""",
+            (recording_id, speaker_id, start_time, end_time, text, text, int(is_overlap)),
+        )
+        await self._conn.commit()
+        return cur.lastrowid
+
+    async def list_segments(self, recording_id: int) -> list[dict]:
+        cur = await self._conn.execute(
+            "SELECT * FROM segments WHERE recording_id=? ORDER BY start_time", (recording_id,)
+        )
+        return [dict(r) for r in await cur.fetchall()]
+
+    async def update_segment_text(self, segment_id: int, text: str) -> None:
+        await self._conn.execute(
+            "UPDATE segments SET text=?, is_edited=1 WHERE id=?", (text, segment_id)
+        )
+        await self._conn.commit()
