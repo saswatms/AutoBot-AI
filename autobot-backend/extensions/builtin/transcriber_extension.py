@@ -23,9 +23,11 @@ _DATA_DIR = Path(os.getenv("TRANSCRIBER_DATA_DIR", "data/transcriber"))
 def get_transcriber_router() -> APIRouter:
     from transcriber.routes.projects import router as projects_router
     from transcriber.routes.recordings import router as recordings_router
+    from transcriber.routes.recordings_sse import router as sse_router
     combined = APIRouter(prefix="/api/transcriber")
     combined.include_router(projects_router)
     combined.include_router(recordings_router)
+    combined.include_router(sse_router)
     return combined
 
 
