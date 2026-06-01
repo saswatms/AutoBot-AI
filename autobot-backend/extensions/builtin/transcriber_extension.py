@@ -42,15 +42,29 @@ class TranscriberExtension(Extension):
             logger.info("Transcriber extension disabled (TRANSCRIBER_ENABLED != true)")
             return
         from transcriber.database import Database
+        from voice_processing.providers import get_registry
+        from voice_processing.providers.lv.late_provider import LATEProvider
+        from voice_processing.providers.lv.tilde_provider import TildeProvider
+
         _DATA_DIR.mkdir(parents=True, exist_ok=True)
         (DATA_DIR := _DATA_DIR / "uploads").mkdir(exist_ok=True)
         (_DATA_DIR / "processed").mkdir(exist_ok=True)
         (_DATA_DIR / "exports").mkdir(exist_ok=True)
+
         db = Database(str(_DATA_DIR / "transcriber.db"))
         await db.connect()
         app.state.transcriber_db = db
         app.state.transcriber_upload_dir = str(_DATA_DIR / "uploads")
         app.state.transcriber_export_dir = str(_DATA_DIR / "exports")
+
+        registry = get_registry()
+        registry.register(LATEProvider())
+        tilde = TildeProvider()
+        if tilde.is_available():
+            registry.register(tilde)
+            logger.info("Tilde provider registered (API key present)")
+        else:
+            logger.info("Tilde provider skipped (TILDE_API_KEY not set)")
         logger.info("Transcriber extension started")
 
     async def on_app_shutdown(self, app: FastAPI) -> None:
