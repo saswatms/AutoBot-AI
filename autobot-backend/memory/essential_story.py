@@ -9,6 +9,7 @@ has persistent top-memories without requiring a RAG retrieval round-trip.
 """
 
 import asyncio
+import hashlib
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -23,8 +24,8 @@ _YAML_PATH = Path(__file__).parent.parent / "config" / "context_windows.yaml"
 # Fallback budget when model is unknown or YAML is unavailable
 _DEFAULT_BUDGET = 600
 
-# Redis cache key template
-_CACHE_KEY = "autobot:essential_story:{model_name}"
+# Redis cache key template — fingerprint makes cache content-addressed (GH#9296)
+_CACHE_KEY = "autobot:essential_story:{model_name}:{fingerprint}"
 
 
 class EssentialStoryGenerator:
@@ -38,12 +39,16 @@ class EssentialStoryGenerator:
         """
         try:
             budget = await self._get_token_budget(model_name or "default")
-            cached = await self._get_cached(model_name or "default")
+            # Fetch facts first to compute fingerprint for cache lookup (GH#9296)
+            facts = await self._fetch_top_facts(budget)
+            fingerprint = self._compute_facts_fingerprint(facts)
+            # Check cache with content-addressed key
+            cached = await self._get_cached(model_name or "default", fingerprint)
             if cached is not None:
                 return cached
-            facts = await self._fetch_top_facts(budget)
+            # Cache miss — format and store
             story = await self._format_output(facts)
-            await self._set_cached(model_name or "default", story)
+            await self._set_cached(model_name or "default", fingerprint, story)
             return story
         except Exception:
             logger.warning(
@@ -79,6 +84,39 @@ class EssentialStoryGenerator:
     def _estimate_tokens(self, text: str) -> int:
         """Approximate token count: word count * 1.3."""
         return int(len(text.split()) * 1.3)
+
+    def _compute_facts_fingerprint(self, facts: List[Dict[str, Any]]) -> str:
+        """Compute SHA-256 fingerprint of fact set for cache invalidation (GH#9296).
+
+        The fingerprint is content-addressed: any add, edit, or delete to the fact
+        set produces a different hash. Order-independent (sorted before hashing) so
+        reordering facts doesn't cause spurious cache invalidations.
+
+        Returns:
+            64-character hex string (SHA-256 hash).
+        """
+        if not facts:
+            # Empty fact set has a stable fingerprint
+            return "empty"
+
+        # Sort by (id, content, category) to make fingerprint order-independent
+        def _sortkey(fact: Dict[str, Any]) -> tuple:
+            fact_id = fact.get("id", "")
+            content = fact.get("content", "")
+            meta = fact.get("metadata") or {}
+            category = meta.get("category", "")
+            return (fact_id, content, category)
+
+        sorted_facts = sorted(facts, key=_sortkey)
+
+        # Build a canonical representation for hashing
+        canonical = []
+        for fact in sorted_facts:
+            meta = fact.get("metadata") or {}
+            canonical.append(f"{fact.get('id', '')}|{fact.get('content', '')}|{meta.get('category', '')}")
+
+        fingerprint_input = "\n".join(canonical).encode("utf-8")
+        return hashlib.sha256(fingerprint_input).hexdigest()
 
     async def _fetch_top_facts(self, max_tokens: int) -> List[Dict[str, Any]]:
         """Query KB, sort by quality_score desc, return top facts within budget."""
@@ -125,13 +163,18 @@ class EssentialStoryGenerator:
             return ""
         return "\n".join(lines)
 
-    async def _get_cached(self, model_name: str) -> str | None:
-        """Return cached story string from Redis, or None on miss/error."""
+    async def _get_cached(self, model_name: str, fingerprint: str) -> str | None:
+        """Return cached story string from Redis, or None on miss/error.
+
+        Args:
+            model_name: Model name for token budget tier
+            fingerprint: SHA-256 hash of fact set for content-addressed cache
+        """
         try:
             from autobot_shared.redis_client import get_redis_client
 
             redis = await get_redis_client(database="knowledge")
-            key = _CACHE_KEY.format(model_name=model_name)
+            key = _CACHE_KEY.format(model_name=model_name, fingerprint=fingerprint)
             value = await redis.get(key)
             if value is None:
                 return None
@@ -140,14 +183,20 @@ class EssentialStoryGenerator:
             logger.debug("Essential story cache get failed", exc_info=True)
             return None
 
-    async def _set_cached(self, model_name: str, story: str) -> None:
-        """Write story to Redis cache with TTL_5_MINUTES TTL."""
+    async def _set_cached(self, model_name: str, fingerprint: str, story: str) -> None:
+        """Write story to Redis cache with TTL_5_MINUTES TTL.
+
+        Args:
+            model_name: Model name for token budget tier
+            fingerprint: SHA-256 hash of fact set for content-addressed cache
+            story: Formatted essential story string to cache
+        """
         try:
             from autobot_shared.redis_client import get_redis_client
             from constants.ttl_constants import TTL_5_MINUTES
 
             redis = await get_redis_client(database="knowledge")
-            key = _CACHE_KEY.format(model_name=model_name)
+            key = _CACHE_KEY.format(model_name=model_name, fingerprint=fingerprint)
             await redis.setex(key, TTL_5_MINUTES, story)
         except Exception:
             logger.debug("Essential story cache set failed", exc_info=True)
