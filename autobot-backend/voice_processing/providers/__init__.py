@@ -10,7 +10,7 @@ Part of Issue #9044 (MVA-2154 parent).
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from autobot_shared.logging_manager import get_logger
 
@@ -127,6 +127,10 @@ _registry = ProviderRegistry()
 def get_provider_registry() -> ProviderRegistry:
     """Get global provider registry instance."""
     return _registry
+
+
+# Alias used by transcriber/orchestrator.py
+get_speech_provider_registry = get_provider_registry
 
 
 def get_speech_provider(language: str) -> Optional[SpeechProvider]:

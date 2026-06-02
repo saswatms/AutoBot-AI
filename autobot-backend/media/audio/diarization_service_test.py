@@ -7,9 +7,8 @@
 
 """Tests for Pyannote speaker diarization service."""
 
-import asyncio
 import tempfile
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
