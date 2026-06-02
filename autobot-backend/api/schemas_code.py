@@ -2317,7 +2317,10 @@ _GIT_FULL_REF_RE = re.compile(r"^[a-zA-Z0-9_\-./^~:]+$")
 class GitStatusRequest(BaseModel):
     """Git status request model"""
 
-    repo_path: str = Field(default=_GIT_DEFAULT_REPO_PATH, description="Repository path (must be whitelisted)")
+    repo_path: str = Field(
+        default=_GIT_DEFAULT_REPO_PATH,
+        description="Repository path (must be whitelisted)",
+    )
     short: bool | None = Field(default=False, description="Use short format output")
 
 
@@ -2524,7 +2527,8 @@ class RedisAnalysisRequest(BaseModel):
     path: str = Field(..., description="Directory or file path to analyze for Redis optimizations")
     exclude_patterns: list | None = Field(default=None, description="Glob patterns to exclude from analysis")
     min_severity: str | None = Field(
-        default=None, description="Minimum severity level to include (info, low, medium, high, critical)"
+        default=None,
+        description="Minimum severity level to include (info, low, medium, high, critical)",
     )
 
 
@@ -2539,10 +2543,12 @@ class SecurityAnalysisRequest(BaseModel):
 
     path: str = Field(..., description="Directory path to analyze for security vulnerabilities")
     exclude_patterns: list | None = Field(
-        default=None, description="Patterns to exclude from analysis (e.g., ['test_*', 'venv'])"
+        default=None,
+        description="Patterns to exclude from analysis (e.g., ['test_*', 'venv'])",
     )
     min_severity: str | None = Field(
-        default=None, description="Minimum severity level to include (info, low, medium, high, critical)"
+        default=None,
+        description="Minimum severity level to include (info, low, medium, high, critical)",
     )
 
 
@@ -2655,7 +2661,10 @@ class ConflictResolutionRequest(BaseModel):
             "accept_ours, accept_theirs, manual_review"
         ),
     )
-    safe_mode: bool = Field(default=True, description="Enable safe mode (require review for complex conflicts)")
+    safe_mode: bool = Field(
+        default=True,
+        description="Enable safe mode (require review for complex conflicts)",
+    )
     validate: bool = Field(default=True, description="Validate resolved code for syntax errors")
 
 

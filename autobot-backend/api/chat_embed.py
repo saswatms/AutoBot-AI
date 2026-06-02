@@ -113,7 +113,10 @@ if _EMBED_ORIGIN_ENFORCEMENT_ENABLED:
         ", ".join(sorted(_EMBED_ALLOWED_ORIGINS)),
     )
 else:
-    logger.info("Embed origin allowlist: open (*) — set %s to restrict", _EMBED_ALLOWED_ORIGINS_ENV)
+    logger.info(
+        "Embed origin allowlist: open (*) — set %s to restrict",
+        _EMBED_ALLOWED_ORIGINS_ENV,
+    )
 
 
 def _check_embed_origin(request: Request) -> str | None:
@@ -194,7 +197,11 @@ async def embed_message(
     allowed = await _embed_rate_limiter.acquire(client_ip)
     if not allowed:
         retry_after = await _embed_rate_limiter.get_retry_after_seconds(client_ip)
-        logger.warning("embed: rate limit exceeded for IP %s (retry after %ds)", client_ip, retry_after)
+        logger.warning(
+            "embed: rate limit exceeded for IP %s (retry after %ds)",
+            client_ip,
+            retry_after,
+        )
         return JSONResponse(
             {"detail": "Rate limit exceeded. Please try again later."},
             status_code=429,

@@ -42,7 +42,13 @@ MANIFEST = MCPBridgeManifest(
     name="filesystem_mcp",
     version="1.0.0",
     description="Filesystem Operations - Secure File & Directory Access",
-    features=["read_files", "write_files", "directory_management", "search", "metadata"],
+    features=[
+        "read_files",
+        "write_files",
+        "directory_management",
+        "search",
+        "metadata",
+    ],
     endpoint="/api/filesystem/mcp/tools",
 )
 
@@ -103,7 +109,11 @@ from api.schemas_code import (
 from auth_middleware import check_admin_permission
 from autobot_shared.error_boundaries import ErrorCategory, with_error_handling
 from autobot_shared.security.path_validator import validate_path
-from utils.catalog_http_exceptions import raise_internal_error, raise_invalid_input, raise_not_found
+from utils.catalog_http_exceptions import (
+    raise_internal_error,
+    raise_invalid_input,
+    raise_not_found,
+)
 
 logger = get_logger(__name__)
 router = APIRouter(tags=["filesystem_mcp", "mcp"])
@@ -255,7 +265,7 @@ def _create_write_file_tool() -> MCPTool:
     """
     return MCPTool(
         name="write_file",
-        description=("Create new file or completely overwrite existing file with" "provided content"),
+        description=("Create new file or completely overwrite existing file withprovided content"),
         input_schema={
             "type": "object",
             "properties": {
@@ -275,7 +285,7 @@ def _create_edit_file_tool() -> MCPTool:
     """
     return MCPTool(
         name="edit_file",
-        description=("Selectively modify file contents using pattern-based find-and-replace" "edits"),
+        description=("Selectively modify file contents using pattern-based find-and-replaceedits"),
         input_schema={
             "type": "object",
             "properties": {
@@ -337,7 +347,7 @@ def _create_directory_tool() -> MCPTool:
     """
     return MCPTool(
         name="create_directory",
-        description=("Create directory with automatic parent directory creation (recursive" "mkdir)"),
+        description=("Create directory with automatic parent directory creation (recursivemkdir)"),
         input_schema={
             "type": "object",
             "properties": {
@@ -387,7 +397,7 @@ def _list_directory_with_sizes_tool() -> MCPTool:
     """
     return MCPTool(
         name="list_directory_with_sizes",
-        description=("List directory contents with detailed size information and" "sortable metrics"),
+        description=("List directory contents with detailed size information andsortable metrics"),
         input_schema={
             "type": "object",
             "properties": {
@@ -1071,7 +1081,10 @@ async def _build_directory_entries_with_sizes(path: str) -> list:
     return entries
 
 
-@router.post("/mcp/list_directory_with_sizes", response_model=FilesystemListDirectoryWithSizesResponse)
+@router.post(
+    "/mcp/list_directory_with_sizes",
+    response_model=FilesystemListDirectoryWithSizesResponse,
+)
 @with_error_handling(
     category=ErrorCategory.SERVER_ERROR,
     operation="list_directory_with_sizes_mcp",
